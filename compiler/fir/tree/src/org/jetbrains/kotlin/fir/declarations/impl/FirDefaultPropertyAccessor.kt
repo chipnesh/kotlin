@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.fir.declarations.impl
 
+import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibility
@@ -23,7 +24,7 @@ import org.jetbrains.kotlin.name.Name
 
 @OptIn(FirImplementationDetail::class)
 abstract class FirDefaultPropertyAccessor(
-    source: FirSourceElement?,
+    source: KtSourceElement?,
     moduleData: FirModuleData,
     origin: FirDeclarationOrigin,
     propertyTypeRef: FirTypeRef,
@@ -67,7 +68,7 @@ abstract class FirDefaultPropertyAccessor(
 
     companion object {
         fun createGetterOrSetter(
-            source: FirSourceElement?,
+            source: KtSourceElement?,
             moduleData: FirModuleData,
             origin: FirDeclarationOrigin,
             propertyTypeRef: FirTypeRef,
@@ -89,7 +90,7 @@ abstract class FirDefaultPropertyAccessor(
 }
 
 class FirDefaultPropertyGetter(
-    source: FirSourceElement?,
+    source: KtSourceElement?,
     moduleData: FirModuleData,
     origin: FirDeclarationOrigin,
     propertyTypeRef: FirTypeRef,
@@ -113,7 +114,7 @@ class FirDefaultPropertyGetter(
 )
 
 class FirDefaultPropertySetter(
-    source: FirSourceElement?,
+    source: KtSourceElement?,
     moduleData: FirModuleData,
     origin: FirDeclarationOrigin,
     propertyTypeRef: FirTypeRef,
