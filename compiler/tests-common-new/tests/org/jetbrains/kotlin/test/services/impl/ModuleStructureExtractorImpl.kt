@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.platform.CommonPlatforms
 import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.platform.js.JsPlatforms
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
+import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.platform.konan.NativePlatforms
 import org.jetbrains.kotlin.test.Assertions
 import org.jetbrains.kotlin.test.TargetBackend
@@ -234,6 +235,7 @@ class ModuleStructureExtractorImpl(
                     }
                 }
                 ModuleStructureDirectives.JVM_TARGET -> {
+                    if (!defaultsProvider.defaultPlatform.isJvm()) return false
                     if (currentModuleTargetPlatform != null) {
                         assertions.fail { "Target platform already specified twice for module $currentModuleName" }
                     }
