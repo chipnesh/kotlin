@@ -5,12 +5,12 @@
 
 package org.jetbrains.kotlin.fir.resolve.calls
 
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.fir.FirVisibilityChecker
+import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.expressions.*
-import org.jetbrains.kotlin.fir.matchingParameterFunctionType
 import org.jetbrains.kotlin.fir.references.FirSuperReference
 import org.jetbrains.kotlin.fir.resolve.directExpansionType
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
@@ -22,9 +22,7 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.SyntheticSymbol
 import org.jetbrains.kotlin.fir.symbols.ensureResolved
 import org.jetbrains.kotlin.fir.symbols.impl.*
-import org.jetbrains.kotlin.fir.typeContext
 import org.jetbrains.kotlin.fir.types.*
-import org.jetbrains.kotlin.fir.visibilityChecker
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -351,10 +349,21 @@ internal object CheckArguments : CheckerStage() {
                 context = context
             )
         }
-        if (candidate.system.hasContradiction && callInfo.arguments.isNotEmpty()) {
-            sink.yieldDiagnostic(InapplicableCandidate)
+
+        when {
+            candidate.system.hasContradiction && callInfo.arguments.isNotEmpty() -> {
+                sink.yieldDiagnostic(InapplicableCandidate)
+            }
+            candidate.usesSAM -> {
+                sink.markCandidateForCompatibilityResolve(context)
+            }
         }
     }
+}
+
+private fun CheckerSink.markCandidateForCompatibilityResolve(context: ResolutionContext) {
+    if (context.session.languageVersionSettings.supportsFeature(LanguageFeature.DisableCompatibilityModeForNewInference)) return
+    reportDiagnostic(LowerPriorityToPreserveCompatibilityDiagnostic)
 }
 
 internal object EagerResolveOfCallableReferences : CheckerStage() {
