@@ -88,6 +88,10 @@ fun main(args: Array<String>) {
             testClass<AbstractHasCommonSubtypeTest> {
                 model("components/hasCommonSubtype")
             }
+
+            testClass<AbstractPsiTypeProviderTest> {
+                model("components/psiTypeProvider")
+            }
         }
 
         testGroup("analysis/low-level-api-fir/tests", "compiler/fir/raw-fir/psi2fir/testData") {
