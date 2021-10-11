@@ -55,7 +55,7 @@ private val DEFAULT_CALL_CHECKERS = listOf(
     CoroutineSuspendCallChecker, BuilderFunctionsCallChecker, DslScopeViolationCallChecker, MissingDependencyClassChecker,
     CallableReferenceCompatibilityChecker(), LateinitIntrinsicApplicabilityChecker,
     UnderscoreUsageChecker, AssigningNamedArgumentToVarargChecker(), ImplicitNothingAsTypeParameterCallChecker,
-    PrimitiveNumericComparisonCallChecker, LambdaWithSuspendModifierCallChecker,
+    PrimitiveNumericComparisonCallChecker, LambdaWithSuspendModifierCallChecker, FunWithSuspendModifierCallChecker,
     UselessElvisCallChecker(), ResultTypeWithNullableOperatorsChecker(), NullableVarargArgumentCallChecker,
     NamedFunAsExpressionChecker, ContractNotAllowedCallChecker, ReifiedTypeParameterSubstitutionChecker(),
     MissingDependencySupertypeChecker.ForCalls, AbstractClassInstantiationChecker, SuspendConversionCallChecker,

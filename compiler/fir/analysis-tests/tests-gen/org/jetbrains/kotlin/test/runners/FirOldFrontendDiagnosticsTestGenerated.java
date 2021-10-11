@@ -34606,6 +34606,12 @@ public class FirOldFrontendDiagnosticsTestGenerated extends AbstractFirDiagnosti
             }
 
             @Test
+            @TestMetadata("nonModifierFormForBuiltInWithFun.kt")
+            public void testNonModifierFormForBuiltInWithFun() throws Exception {
+                runTest("compiler/testData/diagnostics/testsWithStdLib/coroutines/nonModifierFormForBuiltInWithFun.kt");
+            }
+
+            @Test
             @TestMetadata("operators.kt")
             public void testOperators() throws Exception {
                 runTest("compiler/testData/diagnostics/testsWithStdLib/coroutines/operators.kt");
