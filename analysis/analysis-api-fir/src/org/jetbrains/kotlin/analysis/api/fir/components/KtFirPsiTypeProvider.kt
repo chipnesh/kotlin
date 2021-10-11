@@ -5,26 +5,12 @@
 
 package org.jetbrains.kotlin.analysis.api.fir.components
 
-import com.intellij.psi.JavaPsiFacade
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiType
+import com.intellij.lang.java.JavaLanguage
+import com.intellij.psi.*
 import com.intellij.psi.impl.cache.TypeInfo
 import com.intellij.psi.impl.compiled.ClsTypeElementImpl
 import com.intellij.psi.impl.compiled.SignatureParsing
 import com.intellij.psi.impl.compiled.StubBuildingVisitor
-import org.jetbrains.kotlin.codegen.signature.BothSignatureWriter
-import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.backend.jvm.jvmTypeMapper
-import org.jetbrains.kotlin.fir.declarations.FirClass
-import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
-import org.jetbrains.kotlin.fir.declarations.utils.superConeTypes
-import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.resolve.substitution.AbstractConeSubstitutor
-import org.jetbrains.kotlin.fir.resolve.toSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
-import org.jetbrains.kotlin.fir.typeContext
-import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.FirModuleResolveState
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.withFirDeclaration
 import org.jetbrains.kotlin.analysis.api.components.KtPsiTypeProvider
@@ -33,8 +19,29 @@ import org.jetbrains.kotlin.analysis.api.fir.types.PublicTypeApproximator
 import org.jetbrains.kotlin.analysis.api.tokens.ValidityToken
 import org.jetbrains.kotlin.analysis.api.types.KtType
 import org.jetbrains.kotlin.analysis.api.withValidityAssertion
+import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
+import org.jetbrains.kotlin.asJava.elements.KtLightElement
+import org.jetbrains.kotlin.codegen.signature.BothSignatureWriter
+import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.Visibilities
+import org.jetbrains.kotlin.descriptors.Visibility
+import org.jetbrains.kotlin.descriptors.java.JavaVisibilities
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
+import org.jetbrains.kotlin.fir.backend.jvm.jvmTypeMapper
+import org.jetbrains.kotlin.fir.declarations.FirClass
+import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
+import org.jetbrains.kotlin.fir.declarations.utils.superConeTypes
+import org.jetbrains.kotlin.fir.psi
+import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
+import org.jetbrains.kotlin.fir.resolve.substitution.AbstractConeSubstitutor
+import org.jetbrains.kotlin.fir.resolve.toSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
+import org.jetbrains.kotlin.fir.typeContext
+import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.load.kotlin.TypeMappingMode
 import org.jetbrains.kotlin.name.SpecialNames
+import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.types.model.SimpleTypeMarker
 import java.text.StringCharacterIterator
 
@@ -52,17 +59,90 @@ internal class KtFirPsiTypeProvider(
     }
 }
 
-private fun ConeKotlinType.simplifyType(session: FirSession, state: FirModuleResolveState): ConeKotlinType {
+private fun ConeKotlinType.simplifyType(
+    session: FirSession,
+    state: FirModuleResolveState,
+    psiContext: PsiElement,
+): ConeKotlinType {
     val substitutor = AnonymousTypesSubstitutor(session, state)
+    val visibilityForApproximation = psiContext.visibilityForApproximation
+    val isInlineFunction = false // TODO
     var currentType = this
     do {
         val oldType = currentType
         currentType = currentType.fullyExpandedType(session)
         currentType = currentType.upperBoundIfFlexible()
         currentType = substitutor.substituteOrSelf(currentType)
-        currentType = PublicTypeApproximator.approximateTypeToPublicDenotable(currentType, session) ?: currentType
+        if (shouldHideLocalType(visibilityForApproximation, isInlineFunction)) {
+            val localTypes: List<ConeKotlinType> = if (isLocal(session)) listOf(this) else {
+                buildList {
+                    typeArguments.forEach {
+                        if (it is ConeKotlinTypeProjection && it.type.isLocal(session)) {
+                            add(it.type)
+                        }
+                    }
+                }
+            }
+            val unavailableLocalTypes = localTypes.filter { !it.isLocalYetAvailable(session, psiContext) }
+            // Need to approximate if there are local types that are not available in this scope
+            val needsApproximation = localTypes.isNotEmpty() && unavailableLocalTypes.isNotEmpty()
+            if (needsApproximation) {
+                // TODO: can we approximate local types in type arguments *selectively* ?
+                currentType = PublicTypeApproximator.approximateTypeToPublicDenotable(currentType, session) ?: currentType
+            }
+        }
     } while (oldType !== currentType)
     return currentType
+}
+
+// Mimic FirDeclaration.visibilityForApproximation
+private val PsiElement.visibilityForApproximation: Visibility
+    get() {
+        if (this !is PsiMember) return Visibilities.Local
+        val containerVisibility =
+            if (parent is KtLightClassForFacade) Visibilities.Public
+            else (parent as? PsiClass)?.visibility ?: Visibilities.Local
+        if (containerVisibility == Visibilities.Local || visibility == Visibilities.Local) return Visibilities.Local
+        if (containerVisibility == Visibilities.Private) return Visibilities.Private
+        return visibility
+    }
+
+// Mimic JavaElementUtil#getVisibility
+private val PsiModifierListOwner.visibility: Visibility
+    get() {
+        if (hasModifierProperty(PsiModifier.PUBLIC)) {
+            return Visibilities.Public
+        }
+        if (hasModifierProperty(PsiModifier.PRIVATE) || hasModifierProperty(PsiModifier.PACKAGE_LOCAL)) {
+            return Visibilities.Private
+        }
+        return if (language == JavaLanguage.INSTANCE) {
+            if (hasModifierProperty(PsiModifier.PROTECTED)) {
+                if (hasModifierProperty(PsiModifier.STATIC))
+                    JavaVisibilities.ProtectedStaticVisibility
+                else JavaVisibilities.ProtectedAndPackage
+            } else JavaVisibilities.PackageVisibility
+        } else Visibilities.DEFAULT_VISIBILITY
+    }
+
+private fun ConeKotlinType.isLocal(session: FirSession): Boolean {
+    return with(session.typeContext) {
+        this@isLocal.typeConstructor().isLocalType()
+    }
+}
+
+private fun ConeKotlinType.isLocalYetAvailable(
+    session: FirSession,
+    psiContext: PsiElement,
+): Boolean {
+    val localClassSymbol = this.toRegularClassSymbol(session) ?: return false
+    val localPsi = localClassSymbol.source?.psi ?: return false
+    val context = (psiContext as? KtLightElement<*, *>)?.kotlinOrigin ?: psiContext
+    // Local type is available if it's inside the same context (containing declaration)
+    // or containing declaration is inside the local type, e.g., a member of the local class
+    return localPsi == context ||
+            localPsi.parents.any { it == context } ||
+            context.parents.any { it == localPsi }
 }
 
 internal fun ConeKotlinType.asPsiType(
@@ -71,7 +151,7 @@ internal fun ConeKotlinType.asPsiType(
     mode: TypeMappingMode,
     psiContext: PsiElement,
 ): PsiType? {
-    val correctedType = simplifyType(session, state)
+    val correctedType = simplifyType(session, state, psiContext)
 
     if (correctedType is ConeClassErrorType || correctedType !is SimpleTypeMarker) return null
 
