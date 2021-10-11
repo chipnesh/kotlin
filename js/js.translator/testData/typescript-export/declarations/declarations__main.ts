@@ -26,6 +26,7 @@ import KT_37829 = JS_TESTS.foo.KT_37829;
 import TestSealed = JS_TESTS.foo.TestSealed;
 import TestAbstract = JS_TESTS.foo.TestAbstract;
 import TestDataClass = JS_TESTS.foo.TestDataClass;
+import TestInner = JS_TESTS.foo.TestInner;
 
 function assert(condition: boolean) {
     if (!condition) {
@@ -109,6 +110,10 @@ function box(): string {
     assert(new TestAbstract.BB().baz() == "baz");
 
     assert(new TestDataClass.Nested().prop == "hello");
+
+    const outer = new TestInner("Hello ")
+    assert(new outer.Inner("World").a == "World")
+    assert(new outer.Inner("World").concat == "Hello World")
 
     return "OK";
 }

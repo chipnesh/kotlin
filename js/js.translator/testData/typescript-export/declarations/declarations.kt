@@ -161,3 +161,10 @@ data class TestDataClass(val name: String) {
         val prop: String = "hello"
     }
 }
+
+@JsExport
+class TestInner(val a: String) {
+    inner class Inner(val a: String) {
+        val concat: String = this@TestInner.a + this.a
+    }
+}

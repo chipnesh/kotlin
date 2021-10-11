@@ -98,5 +98,17 @@ declare namespace JS_TESTS {
                 readonly prop: string;
             }
         }
+        class TestInner {
+            constructor(a: string);
+            readonly a: string;
+            readonly Inner: { new(a: string): TestInner.Inner; } & typeof TestInner.Inner;
+        }
+        namespace TestInner {
+            class Inner {
+                protected constructor($outer: foo.TestInner, a: string);
+                readonly a: string;
+                readonly concat: string;
+            }
+        }
     }
 }

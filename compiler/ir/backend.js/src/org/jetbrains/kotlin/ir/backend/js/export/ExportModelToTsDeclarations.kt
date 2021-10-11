@@ -6,6 +6,8 @@
 package org.jetbrains.kotlin.ir.backend.js.export
 
 import org.jetbrains.kotlin.ir.backend.js.utils.sanitizeName
+import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.serialization.js.ModuleKind
 
 // TODO: Support module kinds other than plain
@@ -88,7 +90,9 @@ fun ExportedDeclaration.toTypeScript(indent: String, prefix: String = ""): Strin
             " $superInterfacesKeyword " + superInterfaces.joinToString(", ") { it.toTypeScript(indent) }
         } else ""
 
-        val membersString = members.joinToString("") { it.toTypeScript("$indent    ") + "\n" }
+        val (innerClasses, nonInnerClasses) = nestedClasses.partition { it.ir.isInner }
+        val innerClassesProperties = innerClasses.map { it.toReadonlyProperty() }
+        val membersString = (members + innerClassesProperties).joinToString("") { it.toTypeScript("$indent    ") + "\n" }
 
         // If there are no exported constructors, add a private constructor to disable default one
         val privateCtorString =
@@ -107,10 +111,54 @@ fun ExportedDeclaration.toTypeScript(indent: String, prefix: String = ""): Strin
 
         val bodyString = privateCtorString + membersString + indent
 
+        val nestedClasses = nonInnerClasses + innerClasses.map { it.withProtectedConstructors() }
+
         val klassExport = "$prefix$modifiers$keyword $name$renderedTypeParameters$superClassClause$superInterfacesClause {\n$bodyString}"
         val staticsExport = if (nestedClasses.isNotEmpty()) "\n" + ExportedNamespace(name, nestedClasses).toTypeScript(indent, prefix) else ""
         klassExport + staticsExport
     }
+}
+
+fun ExportedConstructor.asConstructSignature(klass: ExportedClass): String {
+    val renderedParameters = parameters.joinToString(", ") { it.toTypeScript("") }
+    return "new($renderedParameters): ${klass.ir.asNestedClassAccess()};"
+}
+
+fun IrClass.asNestedClassAccess(): String {
+    if (parent !is IrClass) return name.identifier
+    return "${parentAsClass.asNestedClassAccess()}.$name"
+}
+
+fun ExportedClass.withProtectedConstructors(): ExportedClass {
+    return copy(members = members.map {
+        if (it !is ExportedConstructor || it.isProtected) {
+            it
+        } else {
+            it.copy(isProtected = true)
+        }
+    })
+}
+
+fun ExportedClass.toReadonlyProperty(): ExportedProperty {
+    val allPublicConstructors = members.asSequence()
+        .filterIsInstance<ExportedConstructor>()
+        .filterNot { it.isProtected }
+        .map { it.copy(parameters = it.parameters.drop(1)) }
+        .joinToString("\n") { it.asConstructSignature(this) }
+
+    val type = ExportedType.TypeParameter("{ $allPublicConstructors } & typeof ${ir.asNestedClassAccess()}")
+
+    return ExportedProperty(
+        name = name,
+        type = type,
+        mutable = false,
+        isMember = true,
+        isStatic = false,
+        isAbstract = false,
+        isProtected = false,
+        irGetter = null,
+        irSetter = null
+    )
 }
 
 fun ExportedParameter.toTypeScript(indent: String): String =

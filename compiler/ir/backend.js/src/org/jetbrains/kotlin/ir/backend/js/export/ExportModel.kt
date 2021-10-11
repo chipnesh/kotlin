@@ -35,7 +35,7 @@ class ExportedFunction(
     val ir: IrSimpleFunction
 ) : ExportedDeclaration()
 
-class ExportedConstructor(
+data class ExportedConstructor(
     val parameters: List<ExportedParameter>,
     val isProtected: Boolean
 ) : ExportedDeclaration()
@@ -56,7 +56,7 @@ class ExportedProperty(
 // TODO: Cover all cases with frontend and disable error declarations
 class ErrorDeclaration(val message: String) : ExportedDeclaration()
 
-class ExportedClass(
+data class ExportedClass(
     val name: String,
     val isInterface: Boolean = false,
     val isAbstract: Boolean = false,
