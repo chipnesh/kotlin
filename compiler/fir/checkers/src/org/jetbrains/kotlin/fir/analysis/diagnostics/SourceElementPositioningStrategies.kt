@@ -329,4 +329,9 @@ object SourceElementPositioningStrategies {
         LightTreePositioningStrategies.TAILREC_MODIFIER,
         PositioningStrategies.TAILREC_MODIFIER
     )
+
+    val DECLARATION_START_TO_NAME = SourceElementPositioningStrategy(
+        LightTreePositioningStrategies.DECLARATION_START_TO_NAME,
+        PositioningStrategies.DECLARATION_START_TO_NAME
+    )
 }

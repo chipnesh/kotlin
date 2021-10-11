@@ -9,7 +9,7 @@ public interface I {
     public fun bar()
 }
 
-public fun f() {
+public fun <!NO_EXPLICIT_RETURN_TYPE_IN_API_MODE!>f<!>() {
     val i = object : I {
         internal var foo = 0
         override fun bar() {}
