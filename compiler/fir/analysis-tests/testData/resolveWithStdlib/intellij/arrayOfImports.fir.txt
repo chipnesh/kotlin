@@ -1,0 +1,3 @@
+FILE: arrayOfImports.kt
+    @R|kotlin/Deprecated|(message = String(Use ...), replaceWith = R|kotlin/ReplaceWith.ReplaceWith|(String(bar), vararg(imports = R|kotlin/arrayOf|<R|kotlin/String|>(vararg(String(my.package.bar)))))) public final fun foo(): R|kotlin/Unit| {
+    }
