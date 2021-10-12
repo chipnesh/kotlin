@@ -8,7 +8,6 @@ package org.jetbrains.kotlin.fir.analysis.checkers
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.isConst
 import org.jetbrains.kotlin.fir.declarations.utils.modality
 import org.jetbrains.kotlin.fir.expressions.*
@@ -22,6 +21,7 @@ import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.resolve.ArrayFqNames
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
 private val compileTimeExtensionFunctions = setOf(Name.identifier("floorDiv"), Name.identifier("mod"))
@@ -157,12 +157,23 @@ internal fun checkConstantArguments(
                     }
                 }
                 else -> {
-                    if (expression.arguments.isNotEmpty() || calleeReference !is FirResolvedNamedReference) {
+                    if (calleeReference !is FirResolvedNamedReference) {
                         return ConstantArgumentKind.NOT_CONST
                     }
                     val symbol = calleeReference.resolvedSymbol as? FirCallableSymbol
+                    val packageName = symbol?.callableId?.packageName
+                    // Note: intArrayOf etc. are represented as implicitArrayOf
+                    if (calleeReference.name == ArrayFqNames.ARRAY_OF_FUNCTION && packageName == StandardClassIds.BASE_KOTLIN_PACKAGE) {
+                        val typeProjectionWithVariance = expression.typeArguments.firstOrNull() as? FirTypeProjectionWithVariance
+                        if (typeProjectionWithVariance?.typeRef?.coneType?.isString == true) {
+                            return null
+                        }
+                    }
+                    if (expression.arguments.isNotEmpty()) {
+                        return ConstantArgumentKind.NOT_CONST
+                    }
                     if (calleeReference.name == OperatorNameConventions.TO_STRING ||
-                        calleeReference.name in CONVERSION_NAMES && symbol?.callableId?.packageName?.asString() == "kotlin"
+                        calleeReference.name in CONVERSION_NAMES && packageName == StandardClassIds.BASE_KOTLIN_PACKAGE
                     ) {
                         return checkConstantArguments(expression.dispatchReceiver, session)
                     }
