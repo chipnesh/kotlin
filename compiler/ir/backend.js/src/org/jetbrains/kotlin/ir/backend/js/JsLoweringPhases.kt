@@ -384,6 +384,12 @@ private val forLoopsLoweringPhase = makeBodyLoweringPhase(
     description = "[Optimization] For loops lowering"
 )
 
+private val enumWhenPhase = makeJsModulePhase(
+    ::EnumWhenLowering,
+    name = "EnumWhenLowering",
+    description = "Replace `when` subjects of enum types with their ordinals"
+).toModuleLowering()
+
 private val propertyLazyInitLoweringPhase = makeBodyLoweringPhase(
     ::PropertyLazyInitLowering,
     name = "PropertyLazyInitLowering",
@@ -823,6 +829,7 @@ private val loweringList = listOf<Lowering>(
     initializersCleanupLoweringPhase,
     kotlinNothingValueExceptionPhase,
     // Common prefix ends
+    enumWhenPhase,
     enumEntryInstancesLoweringPhase,
     enumEntryInstancesBodyLoweringPhase,
     enumClassCreateInitializerLoweringPhase,
