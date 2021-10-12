@@ -1,0 +1,6 @@
+fun test2(x: Boolean): String {
+  return when {
+    x -> return "O"
+    else -> "K"
+  }
+}

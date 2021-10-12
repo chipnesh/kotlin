@@ -1,0 +1,8 @@
+fun test2(x: Boolean): String {
+  return when {
+    x -> { // BLOCK
+      return "O"
+    } /*as String */
+    else -> "K"
+  }
+}
