@@ -12544,6 +12544,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
             }
 
             @Test
+            @TestMetadata("StarImportsAmbiguity.kt")
+            public void testStarImportsAmbiguity() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/imports/StarImportsAmbiguity.kt");
+            }
+
+            @Test
             @TestMetadata("SyntaxError.kt")
             public void testSyntaxError() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/imports/SyntaxError.kt");
