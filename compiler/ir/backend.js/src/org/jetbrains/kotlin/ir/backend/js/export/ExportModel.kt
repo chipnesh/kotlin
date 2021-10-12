@@ -40,6 +40,11 @@ data class ExportedConstructor(
     val isProtected: Boolean
 ) : ExportedDeclaration()
 
+data class ExportedConstructSignature(
+    val parameters: List<ExportedParameter>,
+    val returnType: ExportedType,
+) : ExportedDeclaration()
+
 class ExportedProperty(
     val name: String,
     val type: ExportedType,

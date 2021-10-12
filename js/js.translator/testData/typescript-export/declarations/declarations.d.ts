@@ -101,7 +101,9 @@ declare namespace JS_TESTS {
         class TestInner {
             constructor(a: string);
             readonly a: string;
-            readonly Inner: { new(a: string): TestInner.Inner; } & typeof TestInner.Inner;
+            readonly Inner: {
+                new(a: string): TestInner.Inner;
+            } & typeof TestInner.Inner;
         }
         namespace TestInner {
             class Inner {

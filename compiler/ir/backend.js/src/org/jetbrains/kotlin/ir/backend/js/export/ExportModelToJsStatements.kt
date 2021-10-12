@@ -8,7 +8,9 @@ package org.jetbrains.kotlin.ir.backend.js.export
 import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.JsAstUtils
 import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.defineProperty
 import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.jsAssignment
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.prototypeOf
 import org.jetbrains.kotlin.ir.backend.js.utils.IrNamer
+import org.jetbrains.kotlin.ir.backend.js.utils.emptyScope
 import org.jetbrains.kotlin.js.backend.ast.*
 
 
@@ -66,6 +68,8 @@ class ExportModelToJsStatements(
 
             is ExportedConstructor -> emptyList()
 
+            is ExportedConstructSignature -> emptyList()
+
             is ExportedProperty -> {
                 val getter = declaration.irGetter?.let { JsNameRef(namer.getNameForStaticDeclaration(it)) }
                 val setter = declaration.irSetter?.let { JsNameRef(namer.getNameForStaticDeclaration(it)) }
@@ -94,11 +98,50 @@ class ExportModelToJsStatements(
                     (it as? ExportedProperty)?.takeIf { it.isStatic }
                 }
 
+                val innerClassesAssignments = declaration.nestedClasses
+                    .filter { it.ir.isInner }
+                    .map { it.generateInnerClassAssignmentFor(namespace, declaration) }
+
                 val staticsExport = (staticFunctions + staticProperties + declaration.nestedClasses)
                     .flatMap { generateDeclarationExport(it, newNameSpace) }
 
-                listOf(klassExport) + staticsExport
+                listOf(klassExport) + staticsExport + innerClassesAssignments
             }
         }
+    }
+
+    private fun ExportedClass.generateInnerClassAssignmentFor(namespace: JsNameRef, klass: ExportedClass): JsStatement {
+        val bindConstructor = JsName("__bind_constructor_")
+        val outerClassRef = JsNameRef(namer.getNameForStaticDeclaration(klass.ir), namespace)
+        val innerClassRef = namer.getNameForStaticDeclaration(ir).makeRef()
+        val bindConstructorDeclaration = JsVars(
+            JsVars.JsVar(
+                bindConstructor, JsInvocation(
+                    JsNameRef("bind", innerClassRef),
+                    JsNullLiteral(),
+                    JsThisRef()
+                )
+            )
+        )
+        val companionAssignment = jsAssignment(
+            JsNameRef("Companion", bindConstructor.makeRef()),
+            JsNameRef("Companion", innerClassRef),
+        ).makeStmt()
+        val getter = JsFunction(
+            emptyScope,
+            JsBlock(
+                bindConstructorDeclaration,
+                companionAssignment,
+                JsReturn(bindConstructor.makeRef())
+            ),
+            "inner class '${innerClassRef.ident}' getter"
+        )
+
+        return defineProperty(
+            prototypeOf(outerClassRef),
+            innerClassRef.ident,
+            getter,
+            null
+        ).makeStmt()
     }
 }

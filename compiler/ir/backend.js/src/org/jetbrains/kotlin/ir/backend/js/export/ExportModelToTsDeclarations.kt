@@ -71,6 +71,10 @@ fun ExportedDeclaration.toTypeScript(indent: String, prefix: String = ""): Strin
         val renderedParameters = parameters.joinToString(", ") { it.toTypeScript(indent) }
         "${visibility}constructor($renderedParameters);"
     }
+    is ExportedConstructSignature -> {
+        val renderedParameters = parameters.joinToString(", ") { it.toTypeScript(indent) }
+        "new($renderedParameters): ${returnType.toTypeScript(indent)};"
+    }
 
     is ExportedProperty -> {
         val visibility = if (isProtected) "protected " else ""
@@ -119,11 +123,6 @@ fun ExportedDeclaration.toTypeScript(indent: String, prefix: String = ""): Strin
     }
 }
 
-fun ExportedConstructor.asConstructSignature(klass: ExportedClass): String {
-    val renderedParameters = parameters.joinToString(", ") { it.toTypeScript("") }
-    return "new($renderedParameters): ${klass.ir.asNestedClassAccess()};"
-}
-
 fun IrClass.asNestedClassAccess(): String {
     if (parent !is IrClass) return name.identifier
     return "${parentAsClass.asNestedClassAccess()}.$name"
@@ -140,13 +139,22 @@ fun ExportedClass.withProtectedConstructors(): ExportedClass {
 }
 
 fun ExportedClass.toReadonlyProperty(): ExportedProperty {
+    val innerClassReference = ir.asNestedClassAccess()
     val allPublicConstructors = members.asSequence()
         .filterIsInstance<ExportedConstructor>()
         .filterNot { it.isProtected }
-        .map { it.copy(parameters = it.parameters.drop(1)) }
-        .joinToString("\n") { it.asConstructSignature(this) }
+        .map {
+            ExportedConstructSignature(
+                parameters = it.parameters.drop(1),
+                returnType = ExportedType.TypeParameter(innerClassReference),
+            )
+        }
+        .toList()
 
-    val type = ExportedType.TypeParameter("{ $allPublicConstructors } & typeof ${ir.asNestedClassAccess()}")
+    val type = ExportedType.IntersectionType(
+        ExportedType.InlineInterfaceType(allPublicConstructors),
+        ExportedType.TypeOf(innerClassReference)
+    )
 
     return ExportedProperty(
         name = name,
