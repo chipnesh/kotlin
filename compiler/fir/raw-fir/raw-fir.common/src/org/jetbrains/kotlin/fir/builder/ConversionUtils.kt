@@ -42,7 +42,6 @@ import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.impl.*
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.psi.KtAnnotated
 import org.jetbrains.kotlin.types.ConstantValueKind
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
 import org.jetbrains.kotlin.util.OperatorNameConventions
@@ -592,7 +591,7 @@ fun List<FirAnnotationCall>.filterUseSiteTarget(target: AnnotationUseSiteTarget)
     mapNotNull {
         if (it.useSiteTarget != target) null
         else buildAnnotationCall {
-            source = it.source?.fakeElement(FirFakeSourceElementKind.FromUseSiteTarget)
+            source = it.source?.fakeElement(KtFakeSourceElementKind.FromUseSiteTarget)
             useSiteTarget = it.useSiteTarget
             annotationTypeRef = it.annotationTypeRef
             argumentList = it.argumentList

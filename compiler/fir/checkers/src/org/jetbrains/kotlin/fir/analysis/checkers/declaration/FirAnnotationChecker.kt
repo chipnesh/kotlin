@@ -113,7 +113,7 @@ object FirAnnotationChecker : FirAnnotatedDeclarationChecker() {
                 context
             )
         } else {
-            if (declaration is FirProperty && declaration.source?.kind == FirFakeSourceElementKind.PropertyFromParameter) return
+            if (declaration is FirProperty && declaration.source?.kind == KtFakeSourceElementKind.PropertyFromParameter) return
             reporter.reportOn(
                 annotation.source,
                 FirErrors.WRONG_ANNOTATION_TARGET,
@@ -130,7 +130,7 @@ object FirAnnotationChecker : FirAnnotatedDeclarationChecker() {
         context: CheckerContext,
         reporter: DiagnosticReporter
     ) {
-        if (annotation.source?.kind == FirFakeSourceElementKind.FromUseSiteTarget) return
+        if (annotation.source?.kind == KtFakeSourceElementKind.FromUseSiteTarget) return
         when (target) {
             AnnotationUseSiteTarget.PROPERTY,
             AnnotationUseSiteTarget.PROPERTY_GETTER -> {

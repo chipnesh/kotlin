@@ -5,10 +5,12 @@
 
 package org.jetbrains.kotlin.fir.declarations.impl
 
+import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibility
+import org.jetbrains.kotlin.fakeElement
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.contracts.impl.FirEmptyContractDescription
 import org.jetbrains.kotlin.fir.declarations.*
@@ -131,7 +133,7 @@ class FirDefaultPropertySetter(
     FirImplicitUnitTypeRef(source),
     valueParameters = mutableListOf(
         buildDefaultSetterValueParameter builder@{
-            this@builder.source = source?.fakeElement(FirFakeSourceElementKind.DefaultAccessor)
+            this@builder.source = source?.fakeElement(KtFakeSourceElementKind.DefaultAccessor)
             this@builder.moduleData = moduleData
             this@builder.origin = origin
             this@builder.returnTypeRef = propertyTypeRef
