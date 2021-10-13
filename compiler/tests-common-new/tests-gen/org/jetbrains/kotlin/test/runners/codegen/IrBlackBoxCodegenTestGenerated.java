@@ -16397,6 +16397,12 @@ public class IrBlackBoxCodegenTestGenerated extends AbstractIrBlackBoxCodegenTes
         }
 
         @Test
+        @TestMetadata("RemoteSwiftPackageReference.kt")
+        public void testRemoteSwiftPackageReference() throws Exception {
+            runTest("compiler/testData/codegen/box/fir/RemoteSwiftPackageReference.kt");
+        }
+
+        @Test
         @TestMetadata("SamWithReceiverMavenProjectImportHandler.kt")
         public void testSamWithReceiverMavenProjectImportHandler() throws Exception {
             runTest("compiler/testData/codegen/box/fir/SamWithReceiverMavenProjectImportHandler.kt");
