@@ -499,9 +499,7 @@ ALWAYS_INLINE inline R CallWithThreadState(R(*function)(Args...), Args... args) 
 
 class NativeOrUnregisteredThreadGuard final : private MoveOnly {
 public:
-    NativeOrUnregisteredThreadGuard() : NativeOrUnregisteredThreadGuard(false) {};
-
-    explicit NativeOrUnregisteredThreadGuard(bool reentrant) noexcept {
+    explicit NativeOrUnregisteredThreadGuard(bool reentrant = false) noexcept {
         // The default ctor of ThreadStateGuard doesn't set the state.
         // So the actual state switching is performed only if the thread is registered.
         if (kotlin::mm::IsCurrentThreadRegistered()) {
