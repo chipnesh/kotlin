@@ -16,7 +16,7 @@
 namespace kotlin {
 
 // A queue that is constructed by collecting subqueues from several `Producer`s.
-template <typename T, typename Mutex = SpinLock<ThreadStateHandling::kIgnore>>
+template <typename T, typename Mutex>
 class MultiSourceQueue {
 public:
     class Producer;
