@@ -227,11 +227,20 @@ class MethodSignatureMapper(private val context: JvmBackendContext) {
 
     private fun mapSignature(function: IrFunction, skipGenericSignature: Boolean, skipSpecial: Boolean = false): JvmMethodGenericSignature {
         if (function is IrLazyFunctionBase && !function.isFakeOverride && function.initialSignatureFunction != null) {
-            // Overrides of special builtin in Kotlin classes always have special signature
-            if ((function as? IrSimpleFunction)?.getDifferentNameForJvmBuiltinFunction() == null ||
-                (function.parent as? IrClass)?.origin == IrDeclarationOrigin.IR_EXTERNAL_JAVA_DECLARATION_STUB
-            ) {
-                return mapSignature(function.initialSignatureFunction!!, skipGenericSignature)
+            try {
+                // Overrides of special builtin in Kotlin classes always have special signature
+                if ((function as? IrSimpleFunction)?.getDifferentNameForJvmBuiltinFunction() == null ||
+                    (function.parent as? IrClass)?.origin == IrDeclarationOrigin.IR_EXTERNAL_JAVA_DECLARATION_STUB
+                ) {
+                    return mapSignature(function.initialSignatureFunction!!, skipGenericSignature)
+                }
+            } catch (e: Throwable) {
+                throw AssertionError(
+                    "Exception during signature mapping, " +
+                            "function ${function.name} in class ${function.parentClassOrNull?.name} " +
+                            "with initial signature function ${function.initialSignatureFunction?.name} " +
+                            "in class ${function.initialSignatureFunction?.parentClassOrNull?.name}", e
+                )
             }
         }
 
